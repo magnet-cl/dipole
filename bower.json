@@ -1,0 +1,29 @@
+{
+  "name": "dipole",
+  "version": "0.1.0",
+  "authors": [
+    "Mauricio Castro <mauricio@magnet.cl>"
+  ],
+  "description": "Lightweight, convention over configuration frontend library for web apps.",
+  "dependencies": {
+    "jquery": ">=2.1.0"
+  },
+  "main": "dipole.js",
+  "keywords": [
+    "models",
+    "components",
+    "frontend",
+    "rest",
+    "client"
+  ],
+  "license": "MIT",
+  "homepage": "http://magnet.cl",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
