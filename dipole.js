@@ -1,10 +1,12 @@
 // Dipole.js
 //
-// Magnet.cl, 2014
-//
+// Magnet.cl, 2015
+// Distributed under the MIT license, see
+// LICENSE file for details.
 
 (function(root, $) {
   'use strict';
+
   // Dipole
   // --------------
   var Dipole = {
@@ -12,7 +14,17 @@
     apiRoot: '/',
     _component: null,
     templates: root.Templates,
+
+    component: function(component) {
+      if(arguments.length === 0) {
+        return this._component;
+      }
+
+      this._component = component;
+      component.appendTo('body');
+    }
   };
+
 
   // Class
   // --------------
@@ -508,8 +520,72 @@
   };
 
 
+
+  // Component
+  // --------------
+
+  /**
+   * Basic component definition. Provides a composite of Components.
+   */
+  var Component = Class.extend({
+    /**
+     * Base constructor of the Component class.
+     * @constructor
+     */
+    init: function() {
+      this.components = [];
+      this.$container = $('<component>');
+    },
+
+    /**
+     * Nested components in this component.
+     * @type {Array}
+     */
+    components: [],
+    locals: {},
+    template: '',
+
+    /**
+     * [appendTo description]
+     * @param  {[type]} target [description]
+     * @return {[type]}        [description]
+     */
+    appendTo: function(target) {
+      if(typeof target.append === 'function') {
+        target.append(this.$container);
+      } else {
+        $(target).append(this.$container);
+      }
+
+      this.onLoad();
+    },
+
+    /**
+     * Runs after the component's template is appended to the DOM.
+     */
+    onLoad: function() { },
+
+    /**
+     * Runs when the component is disposed.
+     */
+    onUnload: function() { },
+
+    /**
+     * Updates the contents of the component container.
+     */
+    render: function() {
+      var html = Dipole.templates[this.template](this.locals);
+
+      this.$container.html(html);
+
+      return this.$container;
+    }
+  });
+
+
   // Exports here
   root.Class = Class;
-  root.Model = Model;
+  root.Component = Component;
   root.Dipole = Dipole;
+  root.Model = Model;
 })(this, this.jQuery);
