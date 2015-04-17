@@ -19,11 +19,17 @@ assert(user.a === 23,
 assert(user.b === 42,
   'Model extension failed');
 
+assert(user.method() === 4,
+  'Model extension failed');
+
 assert(worker.c === 55,
   'Model extension after inheritance failed');
 
 assert(worker.a === 23,
   'Broken inheritance chain');
+
+assert(worker.method() === 4,
+  'Broken base method calling');
 
 // Constructor reference
 assert(model.constructor === Dipole.Model,
@@ -74,9 +80,6 @@ assert(user.id() === 4,
 
 assert(user.id(3) === user,
   'Broken model accessors');
-
-assert(worker.method() === 4,
-  'Broken base method calling');
 
 
 // Passsed!
