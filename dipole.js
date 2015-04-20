@@ -255,10 +255,10 @@
 
       var jqXHR = $.ajax({
         accepts: 'application/json',
-        dataType: 'json',
         contentType: 'application/json',
-        method: method,
         data: this.serialize(),
+        dataType: 'json',
+        method: method,
         url: url
       });
 
@@ -440,7 +440,7 @@
    *                                   required to resolve the url.
    * @param  {function} onDone Callback for success, mandatory.
    * @param  {function} onFail Optional callback for failure.
-   * @return {This} A new this().
+   * @return {jqXHR} The jqXHR used to perform the request.
    */
   Model.find = function(searchParameters, onDone, onFail) {
     if (arguments.length < 2) {
@@ -460,6 +460,7 @@
 
     var jqXHR = $.ajax({
       accepts: 'application/json',
+      contentType: 'application/json',
       dataType: 'json',
       method: method,
       url: url
@@ -480,6 +481,65 @@
     });
 
     return jqXHR;
+  };
+
+  /**
+   * Returns an array of instances of the model based on a collection of
+   * backend objects fetched from the index url.
+   * @param  {function} onDone Callback for success, mandatory.
+   * @param  {function} onFail Optional callback for failure.
+   * @return {jqXHR} The jqXHR used to perform the request.
+   */
+  Model.all = function(onDone, onFail) {
+    if (arguments.length < 1) {
+      // Is very important that you use find method asynchronously,
+      // giving a callback you acknowledge that the return of this
+      // function is a jqXHR and not a Model instance.
+      throw new Error('Callback onDone is mandatory for all method.');
+    }
+
+    // Where are we going to make the request
+    var url = this.urlFor('index', {});
+    var method = this.methodFor('index');
+
+    // A reference to the model class that is executing this,
+    // probably a class that inherits from Model, not Model.
+    var modelClass = this;
+
+    var jqXHR = $.ajax({
+      accepts: 'application/json',
+      contentType: 'application/json',
+      dataType: 'json',
+      method: method,
+      url: url
+    });
+
+    // Notify, subscribers!
+    jqXHR.done(function(data, textStatus, jqXHR) {
+      if (!(data instanceof Array)) {
+        if (typeof onFail === 'function') {
+          onFail(jqXHR, textStatus,
+            this.className + '.all() was expecting an array from server.'
+          );
+        }
+      }
+
+      var collection = [];
+
+      for (var i = 0; i < data.length; ++i) {
+        var instance = new modelClass();
+        instance.deserialize(data[i]);
+        collection.push(instance);
+      }
+
+      // Give the instance to the subscribers!
+      onDone(collection, data, textStatus, jqXHR);
+
+    }).fail(function(jqXHR, textStatus, errorThrown) {
+      if (typeof onFail === 'function') {
+        onFail(jqXHR, textStatus, errorThrown);
+      }
+    });
   };
 
   /**
