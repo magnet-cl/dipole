@@ -15,12 +15,19 @@
     _component: null,
     templates: root.Templates,
 
+    /**
+     * Clears the root and appends the given component.
+     * Only a single component is going to be an immediate descendant.
+     * @param  {Component} component The root component.
+     */
     component: function(component) {
       if (arguments.length === 0) {
         return this._component;
       }
 
       this._component = component;
+
+      $('body').html('');
       component.appendTo('body');
     }
   };
@@ -550,11 +557,14 @@
     template: '',
 
     /**
-     * [appendTo description]
-     * @param  {[type]} target [description]
-     * @return {[type]}        [description]
+     * Renders the component and then appends it to the target.
+     * Automatically calls onLoad after everything is completed.
+     * @param  {selector|jQueryElement} target Where the contents
+     *                                  are going to be added.
      */
     appendTo: function(target) {
+      this.render();
+
       if (typeof target.append === 'function') {
         target.append(this.$container);
       } else {
