@@ -358,8 +358,8 @@
     M.convertCase = true;
 
     // Backend urls
-    M.resourceUrl = '/' + Model.underscorize(className) + '/:id.json';
-    M.collectionUrl = '/' + Model.underscorize(className) + '.json';
+    M.resourceUrl = Dipole.apiRoot + Model.underscorize(className) + '/:id.json';
+    M.collectionUrl = Dipole.apiRoot + Model.underscorize(className) + '.json';
 
     /**
      * Parameters that are going to be searched for and replaced
