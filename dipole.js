@@ -16,7 +16,7 @@
     templates: root.Templates,
 
     component: function(component) {
-      if(arguments.length === 0) {
+      if (arguments.length === 0) {
         return this._component;
       }
 
@@ -230,11 +230,11 @@
     save: function(onDone, onFail) {
       // A reference to the model class that is executing this,
       // probably a class that inherits from Model, not Model.
-      var modelClass = this;
+      var modelClass = this.constructor;
       var attributes = this._attributes;
 
       var action = 'update';
-      for (var i = 0; i < thisModel.urlParameters.length; ++i) {
+      for (var i = 0; i < modelClass.urlParameters.length; ++i) {
         // TODO: Change this to a flag on deserialization or something
         if (typeof attributes[modelClass.urlParameters[i]] === 'undefined') {
           action = 'create';
@@ -243,12 +243,13 @@
       }
 
       // Where are we going to make the request
-      var url = thisModel.urlFor(action, attributes);
-      var method = thisModel.methodFor(action);
+      var url = modelClass.urlFor(action, attributes);
+      var method = modelClass.methodFor(action);
 
       var jqXHR = $.ajax({
         accepts: 'application/json',
         dataType: 'json',
+        contentType: 'application/json',
         method: method,
         data: this.serialize(),
         url: url
@@ -288,7 +289,8 @@
         if (!this._attributes.hasOwnProperty(key)) {
           continue;
         }
-        delete this[key]; // The function with the same name
+        // Delete the function with the same name camelized
+        delete this[Model.camelize(key)];
       }
 
       // Use the new attributes
@@ -299,7 +301,9 @@
           continue;
         }
 
-        this[key] = (function(instance, key) {
+        var camelizedKey = Model.camelize(key);
+
+        this[camelizedKey] = (function(instance, key) {
           // Accessor closure
           return function(value) {
             if (arguments.length > 0) {
@@ -412,7 +416,7 @@
     var methods = {
       'index': 'GET',
       'show': 'GET',
-      'create': 'PUT',
+      'create': 'POST',
       'update': 'PATCH',
       'destroy': 'DELETE'
     };
@@ -479,7 +483,7 @@
    */
   Model.camelize = function(p) {
     if (typeof p === 'string') {
-      return p.replace(/(?:^|[-_])(\w)/g, function(_, c) {
+      return p.replace(/(?:[-_])(\w)/g, function(_, c) {
         return c ? c.toUpperCase() : '';
       });
     } else if (typeof p === 'object') {
@@ -551,7 +555,7 @@
      * @return {[type]}        [description]
      */
     appendTo: function(target) {
-      if(typeof target.append === 'function') {
+      if (typeof target.append === 'function') {
         target.append(this.$container);
       } else {
         $(target).append(this.$container);
