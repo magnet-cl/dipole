@@ -12,6 +12,7 @@
   var Dipole = {
     allowUnknownEventListeners: false,
     apiRoot: '/',
+    collectionKey: false,
     _component: null,
     templates: root.Templates,
 
@@ -238,8 +239,11 @@
       // A reference to the model class that is executing this,
       // probably a class that inherits from Model, not Model.
       var modelClass = this.constructor;
+      // Attributes that will be used to build the url and determine the action
       var attributes = this._attributes;
+      var self = this;
 
+      // Determine the action based on the attributes
       var action = 'update';
       for (var i = 0; i < modelClass.urlParameters.length; ++i) {
         // TODO: Change this to a flag on deserialization or something
@@ -249,35 +253,29 @@
         }
       }
 
-      // Where are we going to make the request
-      var url = modelClass.urlFor(action, attributes);
-      var method = modelClass.methodFor(action);
-
-      var jqXHR = $.ajax({
-        accepts: 'application/json',
-        contentType: 'application/json',
-        data: this.serialize(),
-        dataType: 'json',
-        method: method,
-        url: url
-      });
-
-      var self = this;
-      // Notify, subscribers!
-      jqXHR.done(function(data, textStatus, jqXHR) {
-        self.deserialize(data);
-        if (typeof onDone === 'function') {
-          onDone(data, textStatus, jqXHR);
+      // Make the request with instance data
+      return this.request({
+        url: modelClass.urlFor(action, attributes),
+        method: modelClass.methodFor(action),
+        // Update instance
+        processData: function(data) {
+          self.deserialize(data);
+          return self;
         }
+      }, onDone, onFail);
+    },
 
-      }).fail(function(jqXHR, textStatus, errorThrown) {
-        if (typeof onFail === 'function') {
-          onFail(jqXHR, textStatus, errorThrown);
-        }
-
-      });
-
-      return jqXHR;
+    /**
+     * Perform a request to backend using instance attributes
+     * as request payload.
+     * @param  {object}   parameters  Request parameters.
+     * @param  {function} onDone      Callback for success, mandatory.
+     * @param  {function} onFail      Callback for failure, optional.
+     * @return {jqXHR}                The jqXHR used to perform the request.
+     */
+    request: function(parameters, onDone, onFail) {
+      parameters.data = this.serialize();
+      return this.constructor.request(parameters, onDone, onFail);
     },
 
     /**
@@ -358,8 +356,9 @@
     M.convertCase = true;
 
     // Backend urls
-    M.resourceUrl = Dipole.apiRoot + Model.underscorize(className) + '/:id.json';
-    M.collectionUrl = Dipole.apiRoot + Model.underscorize(className) + '.json';
+    // TODO: use inflector
+    M.resourceUrl = Dipole.apiRoot + Model.underscorize(className) + 's/:id/';
+    M.collectionUrl = Dipole.apiRoot + Model.underscorize(className) + 's/';
 
     /**
      * Parameters that are going to be searched for and replaced
@@ -369,7 +368,6 @@
     M.urlParameters = ['id'];
     return M;
   };
-
 
   /**
    * Resolves the url for a specific action given a set of
@@ -398,12 +396,9 @@
     if (typeof urlParameterValues === 'object') {
       // Try to replace every placeholder defined in this.urlParameters
       // with the values of the searchParameters ditionary.
-      for (var p in this.urlParameters) {
-        if (!this.urlParameters.hasOwnProperty(p)) {
-          continue;
-        }
-
-        url.replace(':' + p, urlParameterValues[p]);
+      for (var i = 0; i < this.urlParameters.length; ++i) {
+        var p = this.urlParameters[i];
+        url = url.replace(':' + p, urlParameterValues[p]);
       }
     } else {
       // Not a dictionary, sigle value, may be a string or number, do not
@@ -435,44 +430,51 @@
   };
 
   /**
-   * Creates an instance of the model based on a backend object.
-   * @param  {Anything} searchParameters id or dictionary of values
-   *                                   required to resolve the url.
-   * @param  {function} onDone Callback for success, mandatory.
-   * @param  {function} onFail Optional callback for failure.
-   * @return {jqXHR} The jqXHR used to perform the request.
+   * Performs a request to backend.
+   * @param  {object}   parameters  Request parameters.
+   * @param  {function} onDone      Callback for success, mandatory.
+   * @param  {function} onFail      Callback for failure, optional.
+   * @return {jqXHR}                The jqXHR used to perform the request.
    */
-  Model.find = function(searchParameters, onDone, onFail) {
-    if (arguments.length < 2) {
-      // Is very important that you use find method asynchronously,
+  Model.request = function(parameters, onDone, onFail) {
+    if (typeof onDone !== 'function') {
+      // Is very important that you use request method asynchronously,
       // giving a callback you acknowledge that the return of this
-      // function is a jqXHR and not a Model instance.
-      throw new Error('Callback onDone is mandatory for find method.');
+      // function is a jqXHR and not a Model instance or a collection.
+      throw new Error('Callback onDone is mandatory for request method.');
     }
 
-    // Where are we going to make the request
-    var url = this.urlFor('show', searchParameters);
-    var method = this.methodFor('show');
+    // We define default parameters in case they are not present
+    var defaultParameters = {
+      url: Dipole.apiRoot,
+      method: 'GET',
+      data: {}
+    };
 
-    // A reference to the model class that is executing this,
-    // probably a class that inherits from Model, not Model.
-    var modelClass = this;
-
+    // We make the request
     var jqXHR = $.ajax({
-      accepts: 'application/json',
+      accept: 'application/json',
       contentType: 'application/json',
       dataType: 'json',
-      method: method,
-      url: url
+      url: parameters.url || defaultParameters.url,
+      method: parameters.method || defaultParameters.method,
+      data: parameters.data || defaultParameters.data
     });
 
     // Notify, subscribers!
     jqXHR.done(function(data, textStatus, jqXHR) {
-      var instance = new modelClass();
-      instance.deserialize(data);
+      // Check data if a function is given
+      if (typeof parameters.checkData === 'function') {
+        parameters.checkData(data, jqXHR, textStatus);
+      }
 
-      // Give the instance to the subscribers!
-      onDone(instance, data, textStatus, jqXHR);
+      var returnObject = data;
+      // Process data into a return object if a function is given
+      if (typeof parameters.processData === 'function') {
+        returnObject = parameters.processData(data);
+      }
+      // Give the return object to the subscribers!
+      onDone(returnObject, data, textStatus, jqXHR);
 
     }).fail(function(jqXHR, textStatus, errorThrown) {
       if (typeof onFail === 'function') {
@@ -484,6 +486,32 @@
   };
 
   /**
+   * Creates an instance of the model based on a backend object.
+   * @param  {Anything} searchParameters id or dictionary of values
+   *                                   required to resolve the url.
+   * @param  {function} onDone Callback for success, mandatory.
+   * @param  {function} onFail Optional callback for failure.
+   * @return {jqXHR} The jqXHR used to perform the request.
+   */
+  Model.find = function(searchParameters, onDone, onFail) {
+    // A reference to the model class that is executing this,
+    // probably a class that inherits from Model, not Model.
+    var modelClass = this;
+
+    // Make the request with corresponding url and method
+    return modelClass.request({
+      url: modelClass.urlFor('show', searchParameters),
+      method: modelClass.methodFor('show'),
+      // Build instance with received data
+      processData: function(data) {
+        var instance = new modelClass();
+        instance.deserialize(data);
+        return instance;
+      }
+    }, onDone, onFail);
+  };
+
+  /**
    * Returns an array of instances of the model based on a collection of
    * backend objects fetched from the index url.
    * @param  {function} onDone Callback for success, mandatory.
@@ -491,55 +519,52 @@
    * @return {jqXHR} The jqXHR used to perform the request.
    */
   Model.all = function(onDone, onFail) {
-    if (arguments.length < 1) {
-      // Is very important that you use find method asynchronously,
-      // giving a callback you acknowledge that the return of this
-      // function is a jqXHR and not a Model instance.
-      throw new Error('Callback onDone is mandatory for all method.');
-    }
-
-    // Where are we going to make the request
-    var url = this.urlFor('index', {});
-    var method = this.methodFor('index');
-
     // A reference to the model class that is executing this,
     // probably a class that inherits from Model, not Model.
     var modelClass = this;
 
-    var jqXHR = $.ajax({
-      accepts: 'application/json',
-      contentType: 'application/json',
-      dataType: 'json',
-      method: method,
-      url: url
-    });
+    // Make the request with corresponding url and method
+    return modelClass.request({
+      url: modelClass.urlFor('index', {}),
+      method: modelClass.methodFor('index'),
+      // Check if we received an array
+      checkData: function(data, jqXHR, textStatus) {
+        var objectsArray = data;
 
-    // Notify, subscribers!
-    jqXHR.done(function(data, textStatus, jqXHR) {
-      if (!(data instanceof Array)) {
-        if (typeof onFail === 'function') {
-          onFail(jqXHR, textStatus,
-            this.className + '.all() was expecting an array from server.'
-          );
+        // We need to check if Dipole was configured
+        // to receive collections into an object
+        if (Dipole.collectionKey !== false) {
+          objectsArray = data[Dipole.collectionKey];
         }
+
+        if (!(objectsArray instanceof Array)) {
+          if (typeof onFail === 'function') {
+            onFail(jqXHR, textStatus,
+              modelClass.className +
+                '.all() was expecting an array from server.'
+            );
+          }
+        }
+      },
+      // Build an array of instances with received data
+      processData: function(data) {
+        var collection = [];
+        var objectsArray = data;
+
+        // We need to check if Dipole was configured
+        // to receive collections into an object
+        if (Dipole.collectionKey !== false) {
+          objectsArray = data[Dipole.collectionKey];
+        }
+
+        for (var i = 0; i < objectsArray.length; ++i) {
+          var instance = new modelClass();
+          instance.deserialize(objectsArray[i]);
+          collection.push(instance);
+        }
+        return collection;
       }
-
-      var collection = [];
-
-      for (var i = 0; i < data.length; ++i) {
-        var instance = new modelClass();
-        instance.deserialize(data[i]);
-        collection.push(instance);
-      }
-
-      // Give the instance to the subscribers!
-      onDone(collection, data, textStatus, jqXHR);
-
-    }).fail(function(jqXHR, textStatus, errorThrown) {
-      if (typeof onFail === 'function') {
-        onFail(jqXHR, textStatus, errorThrown);
-      }
-    });
+    }, onDone, onFail);
   };
 
   /**
