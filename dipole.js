@@ -463,11 +463,18 @@
 
     // Notify, subscribers!
     jqXHR.done(function(data, textStatus, jqXHR) {
-      // Check data if a function is given
-      if (typeof parameters.checkData === 'function') {
-        parameters.checkData(data, jqXHR, textStatus);
+      // Validate data if a function is given
+      if (typeof parameters.validator === 'function') {
+        var validationResult = parameters.validator(data, jqXHR, textStatus);
+        if(validationResult !== true) {
+          if (typeof onFail === 'function') {
+            onFail(jqXHR, textStatus, 'Validation failed: ' + validationResult);
+          }
+          return;
+        }
       }
 
+      // validation passed or no validation
       var returnObject = data;
       // Process data into a return object if a function is given
       if (typeof parameters.processData === 'function') {
@@ -528,7 +535,7 @@
       url: modelClass.urlFor('index', {}),
       method: modelClass.methodFor('index'),
       // Check if we received an array
-      checkData: function(data, jqXHR, textStatus) {
+      validator: function(data, jqXHR, textStatus) {
         var objectsArray = data;
 
         // We need to check if Dipole was configured
@@ -538,13 +545,10 @@
         }
 
         if (!(objectsArray instanceof Array)) {
-          if (typeof onFail === 'function') {
-            onFail(jqXHR, textStatus,
-              modelClass.className +
-                '.all() was expecting an array from server.'
-            );
-          }
+          return '.all() was expecting an array from server.'
         }
+
+        return true; // Any other value results in validation error
       },
       // Build an array of instances with received data
       processData: function(data) {
