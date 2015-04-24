@@ -97,6 +97,15 @@
       if (!initializingClass && this.init) {
         this.init.apply(this, arguments);
       }
+
+      // Populate the dictionary of events with the event names
+      // defined in the static field "events".
+      if (this.constructor.events) {
+        for (var i = 0; i < this.constructor.events.length; ++i) {
+          var eventName = this.constructor.events[i];
+          this._events[eventName] = [];
+        }
+      }
     };
 
     // Populate our constructed prototype object
@@ -110,13 +119,8 @@
       Class[name] = this[name];
     }
 
-    // Create default events
-    if (prop.events) {
-      for (var i = 0; i < prop.events.length; ++i) {
-        var eventName = prop.events[i];
-        Class.prototype._events[eventName] = [];
-      }
-    }
+    // Shortcut to access event definitions
+    Class.events = prop.events;
 
     Class.prototype.listen = function(eventName, callback, options) {
       if (typeof eventName !== 'string') {
