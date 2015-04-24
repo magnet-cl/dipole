@@ -110,6 +110,14 @@
       Class[name] = this[name];
     }
 
+    // Create default events
+    if (prop.events) {
+      for (var i = 0; i < prop.events.length; ++i) {
+        var eventName = prop.events[i];
+        Class.prototype._events[eventName] = [];
+      }
+    }
+
     Class.prototype.listen = function(eventName, callback, options) {
       if (typeof eventName !== 'string') {
         // TODO: Enforce string event names. Fail with exception?
@@ -466,7 +474,7 @@
       // Validate data if a function is given
       if (typeof parameters.validator === 'function') {
         var validationResult = parameters.validator(data, jqXHR, textStatus);
-        if(validationResult !== true) {
+        if (validationResult !== true) {
           if (typeof onFail === 'function') {
             onFail(jqXHR, textStatus, 'Validation failed: ' + validationResult);
           }
@@ -545,7 +553,7 @@
         }
 
         if (!(objectsArray instanceof Array)) {
-          return '.all() was expecting an array from server.'
+          return '.all() was expecting an array from server.';
         }
 
         return true; // Any other value results in validation error
