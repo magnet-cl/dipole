@@ -10,12 +10,32 @@
   // Dipole
   // --------------
   var Dipole = {
+    _component: null,
+    _currentState: '',
+    _updatingState: false,
     allowUnknownEventListeners: false,
     apiRoot: '/',
     collectionKey: false,
-    _component: null,
     templates: root.Templates,
-    currentState: '',
+
+    /**
+     * Initializes dipole.
+     * @constructor
+     */
+    init: function() {
+      var _this = this;
+
+      // When running in browser, listen popstate!
+      if ( typeof window !== 'undefined' && window.popstate ) {
+        window.onpopstate = function() {
+          // onpopstate update dipole state!
+          var state = window.location.hash.replace(/^#/, '');
+          _this._updatingState = true;
+          _this.state(state);
+          _this._updatingState = false;
+        };
+      }
+    },
 
     /**
      * Clears the root and appends the given component.
@@ -39,11 +59,17 @@
      * @return {String} Current state if called without params.
      */
     state: function() {
-      if(arguments.length === 0) {
-        return this.currentState;
+      if (arguments.length === 0) {
+        return this._currentState;
       } else {
+        if (this._updatingState) {
+          // Prevent infinite state change loops
+          return;
+        }
+
         this.currentState = arguments[0];
-        this.trigger('stateChanged', this.currentState);
+        this._component[this._currentState]();
+        this.trigger('stateChanged', this._currentState);
       }
     }
   };
