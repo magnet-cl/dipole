@@ -15,6 +15,7 @@
     collectionKey: false,
     _component: null,
     templates: root.Templates,
+    currentState: '',
 
     /**
      * Clears the root and appends the given component.
@@ -30,6 +31,20 @@
 
       $('body').html('');
       component.appendTo('body');
+    },
+
+    /**
+     * Returns the current state if called with no params.
+     * Sets the current state if passed as the first parameter.
+     * @return {String} Current state if called without params.
+     */
+    state: function() {
+      if(arguments.length === 0) {
+        return this.currentState;
+      } else {
+        this.currentState = arguments[0];
+        this.trigger(this.currentState);
+      }
     }
   };
 
@@ -724,6 +739,10 @@
     }
   });
 
+  // Upgrade dipole to a Dipole Class!
+  var DipoleClass = Class.extend(Dipole);
+  DipoleClass.events = ['stateChanged'];
+  Dipole = new DipoleClass();
 
   // Exports here
   root.Class = Class;
