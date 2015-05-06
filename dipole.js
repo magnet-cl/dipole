@@ -46,7 +46,7 @@
   var initializingClass = false;
   var fnTest = /xyz/.test(function() {xyz;}) ? /\b_super\b/ : /.*/;
 
-  // The base Class implementation (does nothing)
+  // The base Class implementation
   var Class = function() {
     /**
      * A dictionary with the event names as keys and arrays of objects
@@ -66,6 +66,11 @@
     initializingClass = true;
     var prototype = new this();
     initializingClass = false;
+
+    // Create empty construtor if missing
+    if (!prop.init) {
+      prop.init = function() {};
+    }
 
     // Copy the properties over onto the new prototype
     for (var name in prop) {
@@ -92,7 +97,14 @@
     }
 
     // The dummy class constructor
-    var Class = function() {
+    var ExtendedClass = function() {
+      // Execute base class constructor
+      if (_super && _super.init) {
+        _super.init.apply(this, arguments);
+      } else {
+        Class.apply(this, arguments);
+      }
+
       // All construction is actually done in the init method
       if (!initializingClass && this.init) {
         this.init.apply(this, arguments);
@@ -109,111 +121,126 @@
     };
 
     // Populate our constructed prototype object
-    Class.prototype = prototype;
+    ExtendedClass.prototype = prototype;
 
     // Enforce the constructor to be what we expect
-    Class.prototype.constructor = Class;
+    ExtendedClass.prototype.constructor = ExtendedClass;
 
     // Copy static methods, including extend
     for (var name in this) {
-      Class[name] = this[name];
+      ExtendedClass[name] = this[name];
     }
 
     // Shortcut to access event definitions
-    Class.events = prop.events;
+    ExtendedClass.events = prop.events;
 
-    Class.prototype.listen = function(eventName, callback, options) {
-      if (typeof eventName !== 'string') {
-        // TODO: Enforce string event names. Fail with exception?
-        return false;
-      }
-
-      if (typeof callback !== 'function') {
-        // TODO: Enforce function callbacks. Fail with exception?
-        return false;
-      }
-
-      if (!this._events.hasOwnProperty(eventName)) {
-        // TODO: Fail if you are listening to a unknown event?
-        // Or save the callback for future?
-        // this._events[eventName] = [];
-        return false;
-      }
-      // The previous block should be refactored
-      // into a private method for those validations.
-
-      // TODO: check if already subscribed?
-
-      // Subscribe
-      this._events[eventName].push({
-        callback: callback,
-        options: options
-      });
-
-      // Make event listenings concatenable
-      return this;
-    };
-
-    Class.prototype.unlisten = function(eventName, callback) {
-      if (typeof eventName !== 'string') {
-        // TODO: Enforce string event names. Fail with exception?
-        return false;
-      }
-
-      if (typeof callback !== 'function') {
-        // TODO: Enforce function callbacks. Fail with exception?
-        return false;
-      }
-
-      if (!this._events.hasOwnProperty(eventName)) {
-        // TODO: Fail if you are listening to a unknown event?
-        return false;
-      }
-      // The previous block should be refactored
-      // into a private method for those validations.
-
-      var event = this._events[eventName];
-      var newEvent = [];
-      // Make a copy of the array, copy all but callback
-      for (var i = 0; i < event.length; ++i) {
-        if (event[i].callback !== callback) {
-          newEvent.push(event[i]);
-        }
-      }
-      // Swap the arrays
-      this._events[eventName] = newEvent;
-
-      // Make event unlistenings concatenable
-      return this;
-    };
-
-
-    Class.prototype.trigger = function() {
-      var eventName = arguments[0];
-      var eventArguments = [];
-      // .shift() do the same, but arguments shall not be modified!
-      for (var i = 1; i < arguments.length; ++i) {
-        eventArguments.push(arguments[i]);
-      }
-
-      // TODO: Check again if the event is valid
-
-      var event = this._events[eventName];
-
-      // Call every listener!
-      for (var i = 0; i < event.length; ++i) {
-        event[i].callback.apply(this, eventArguments);
-      }
-
-      // Make event triggers concatenable
-      return this;
-    };
-
-
-    return Class;
+    return ExtendedClass;
   };
 
+  /**
+   * Subscribes a listener to a specific event.
+   * @param  {string}   eventName Name of the event.
+   * @param  {Function} callback  What is going to be called.
+   * @param  {hash}     options   A hash with optional parameters.
+   * @return {Class}              This. Returns itself.
+   */
+  Class.prototype.listen = function(eventName, callback, options) {
+    if (typeof eventName !== 'string') {
+      // TODO: Enforce string event names. Fail with exception?
+      return false;
+    }
 
+    if (typeof callback !== 'function') {
+      // TODO: Enforce function callbacks. Fail with exception?
+      return false;
+    }
+
+    if (!this._events.hasOwnProperty(eventName)) {
+      // TODO: Fail if you are listening to a unknown event?
+      // Or save the callback for future?
+      // this._events[eventName] = [];
+      return false;
+    }
+    // The previous block should be refactored
+    // into a private method for those validations.
+
+    // TODO: check if already subscribed?
+
+    // Subscribe
+    this._events[eventName].push({
+      callback: callback,
+      options: options
+    });
+
+    // Make event listenings concatenable
+    return this;
+  };
+
+  /**
+   * Unsibscribes a listener from an event.
+   * @param  {string}   eventName Name of the event.
+   * @param  {Function} callback  Callback that is going to be removed.
+   * @return {Class}              This. Returns itself.
+   */
+  Class.prototype.unlisten = function(eventName, callback) {
+    if (typeof eventName !== 'string') {
+      // TODO: Enforce string event names. Fail with exception?
+      return false;
+    }
+
+    if (typeof callback !== 'function') {
+      // TODO: Enforce function callbacks. Fail with exception?
+      return false;
+    }
+
+    if (!this._events.hasOwnProperty(eventName)) {
+      // TODO: Fail if you are listening to a unknown event?
+      return false;
+    }
+    // The previous block should be refactored
+    // into a private method for those validations.
+
+    var event = this._events[eventName];
+    var newEvent = [];
+    // Make a copy of the array, copy all but callback
+    for (var i = 0; i < event.length; ++i) {
+      if (event[i].callback !== callback) {
+        newEvent.push(event[i]);
+      }
+    }
+    // Swap the arrays
+    this._events[eventName] = newEvent;
+
+    // Make event unlistenings concatenable
+    return this;
+  };
+
+  /**
+   * Triggers an event. Every subscriber is going to be called.
+   * First parameter is the event name, subsequent parameters will be passed
+   * to the callbacks in the same order.
+   * @return {Class}              This. Returns itself.
+   */
+  Class.prototype.trigger = function(/* eventName, param0, param1, ... */) {
+    var eventName = arguments[0];
+    var eventArguments = [];
+    // .shift() do the same, but arguments shall not be modified!
+    for (var i = 1; i < arguments.length; ++i) {
+      eventArguments.push(arguments[i]);
+    }
+
+    // TODO: Check again if the event is valid
+
+    var event = this._events[eventName];
+
+    // Call every listener!
+    for (var i = 0; i < event.length; ++i) {
+      event[i].callback.apply(this, eventArguments);
+    }
+
+    // Make event triggers concatenable
+    return this;
+  };
 
   // Model
   // --------------
