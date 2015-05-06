@@ -26,7 +26,7 @@
       var _this = this;
 
       // When running in browser, listen popstate!
-      if (typeof window !== 'undefined' && window.popstate) {
+      if (typeof window !== 'undefined') {
         window.onpopstate = function() {
           // onpopstate update dipole state!
           var state = window.location.hash.replace(/^#/, '');
