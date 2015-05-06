@@ -26,7 +26,7 @@
       var _this = this;
 
       // When running in browser, listen popstate!
-      if ( typeof window !== 'undefined' && window.popstate ) {
+      if (typeof window !== 'undefined' && window.popstate) {
         window.onpopstate = function() {
           // onpopstate update dipole state!
           var state = window.location.hash.replace(/^#/, '');
@@ -62,12 +62,13 @@
       if (arguments.length === 0) {
         return this._currentState;
       } else {
-        if (this._updatingState) {
-          // Prevent infinite state change loops
-          return;
-        }
+        var state = arguments[0];
 
-        this.currentState = arguments[0];
+        if (!this._updatingState) {
+          // Prevent infinite state change loops
+          window.location.hash = state;
+        }
+        this._currentState = state;
         this._component[this._currentState]();
         this.trigger('stateChanged', this._currentState);
       }
