@@ -43,7 +43,7 @@
         return this.currentState;
       } else {
         this.currentState = arguments[0];
-        this.trigger(this.currentState);
+        this.trigger('stateChanged', this.currentState);
       }
     }
   };
