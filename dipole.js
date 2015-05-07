@@ -69,7 +69,7 @@
           window.location.hash = state;
         }
 
-        if (typeof this._component[this._currentState] !== 'function') {
+        if (typeof this._component[state] !== 'function') {
           throw new Error('Missing method ' + state + ' in root component');
         }
 
