@@ -609,16 +609,19 @@
    * backend objects fetched from the index url.
    * @param  {function} onDone Callback for success, mandatory.
    * @param  {function} onFail Optional callback for failure.
+   * @param  {Anything} urlParameterValues A string or number to be used as :id
+   *                    or a dictionary with values that can be replaced from
+   *                    the model resource and collection urls.
    * @return {jqXHR} The jqXHR used to perform the request.
    */
-  Model.all = function(onDone, onFail) {
+  Model.all = function(onDone, onFail, urlParameterValues) {
     // A reference to the model class that is executing this,
     // probably a class that inherits from Model, not Model.
     var modelClass = this;
 
     // Make the request with corresponding url and method
     return modelClass.request({
-      url: modelClass.urlFor('index', {}),
+      url: modelClass.urlFor('index', urlParameterValues || {}),
       method: modelClass.methodFor('index'),
       // Check if we received an array
       validator: function(data, jqXHR, textStatus) {
