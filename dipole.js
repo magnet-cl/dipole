@@ -30,8 +30,9 @@
         window.onpopstate = function() {
           // onpopstate update dipole state!
           var state = window.location.hash.replace(/^#/, '');
+          var stateWithArgs = state.split('/');
           _this._updatingState = true;
-          _this.state(state);
+          _this.state.apply(_this, stateWithArgs);
           _this._updatingState = false;
         };
       }
@@ -73,8 +74,16 @@
           throw new Error('Missing method ' + state + ' in root component');
         }
 
+        // Extract the state arguments from the additional parameters
+        var stateArgs = [];
+        if (arguments.length > 1) {
+          for (var i = 1; i < arguments.length; ++i) {
+            stateArgs.push(arguments[i]);
+          }
+        }
+
         this._currentState = state;
-        this._component[this._currentState]();
+        this._component[this._currentState].apply(this._component, stateArgs);
         this.trigger('stateChanged', this._currentState);
       }
     }
