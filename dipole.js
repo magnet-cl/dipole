@@ -361,6 +361,33 @@
     },
 
     /**
+     * Destroys the current object in the backend.
+     * @param  {function} onDone Callback for success.
+     * @param  {function} onFail Callback for failure.
+     * @return {Object} This. Returns itself.
+     */
+    destroy: function(onDone, onFail) {
+      // A reference to the model class that is executing this,
+      // probably a class that inherits from Model, not Model.
+      var modelClass = this.constructor;
+      // Attributes that will be used to build the url and determine the action
+      var attributes = this._attributes;
+      var self = this;
+
+      var action = 'destroy';
+
+      // Make the request with instance data
+      return this.request({
+        url: modelClass.urlFor(action, attributes),
+        method: modelClass.methodFor(action),
+        // Returns itself but without updating the instance.
+        processData: function(data) {
+          return self;
+        }
+      }, onDone, onFail);
+    },
+
+    /**
      * Perform a request to backend using instance attributes
      * as request payload.
      * @param  {object}   parameters  Request parameters.
