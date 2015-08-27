@@ -573,15 +573,22 @@
       data: {}
     };
 
-    // We make the request
-    var jqXHR = $.ajax({
+    // Prepare the request parameters
+    var jqXHRParams = {
       accept: 'application/json',
       contentType: 'application/json',
-      dataType: 'json',
       url: parameters.url || defaultParameters.url,
       method: parameters.method || defaultParameters.method,
       data: parameters.data || defaultParameters.data
-    });
+    };
+
+    // Avoid dataType json for DELETE requests, it will cause a buggy behavior
+    if (jqXHRParams.method !== 'DELETE') {
+      jqXHRParams.dataType = 'json';
+    }
+
+    // Parameters are ready, make the request!
+    var jqXHR = $.ajax(jqXHRParams);
 
     // Notify, subscribers!
     jqXHR.done(function(data, textStatus, jqXHR) {
