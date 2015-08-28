@@ -104,13 +104,6 @@
 
   // The base Class implementation
   var Class = function() {
-    /**
-     * A dictionary with the event names as keys and arrays of objects
-     * with the following structure as values:
-     * {callback: function, options: {...}}
-     * @type {Object}
-     */
-    this._events = {};
   };
 
   // Create a new Class that inherits from this class
@@ -154,6 +147,14 @@
 
     // The dummy class constructor
     var ExtendedClass = function() {
+      /**
+       * A dictionary with the event names as keys and arrays of objects
+       * with the following structure as values:
+       * {callback: function, options: {...}}
+       * @type {Object}
+       */
+      this._events = {};
+
       // Execute base class constructor
       if (_super && _super.init) {
         _super.init.apply(this, arguments);
