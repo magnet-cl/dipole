@@ -579,13 +579,14 @@
       accept: 'application/json',
       contentType: 'application/json',
       url: parameters.url || defaultParameters.url,
-      method: parameters.method || defaultParameters.method,
-      data: parameters.data || defaultParameters.data
+      method: parameters.method || defaultParameters.method
     };
 
     // Avoid dataType json for DELETE requests, it will cause a buggy behavior
+    // Avoid sending data for DELETE requests, it will cause a buggy behavior
     if (jqXHRParams.method !== 'DELETE') {
       jqXHRParams.dataType = 'json';
+      jqXHRParams.data = parameters.data || defaultParameters.data;
     }
 
     // Parameters are ready, make the request!
